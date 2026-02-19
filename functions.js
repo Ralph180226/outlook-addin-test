@@ -1,6 +1,4 @@
-Office.onReady(function () {
-    console.log("Office is ready");
-});
+Office.onReady(() => {});
 
 function reportPhishing(event) {
 
@@ -8,7 +6,7 @@ function reportPhishing(event) {
 
     Office.context.mailbox.displayNewMessageForm({
         toRecipients: ["ondersteuning@itssunday.nl"],
-        subject: "Verdachte mail gemeld: " + (item.subject || ""),
+        subject: "Verdachte mail gemeld: " + item.subject,
         htmlBody: "<p>Deze e-mail is gemeld als verdacht.</p>"
     });
 
