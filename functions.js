@@ -1,4 +1,6 @@
-Office.onReady(() => {});
+Office.onReady(function () {
+    console.log("Office is ready");
+});
 
 function reportPhishing(event) {
 
