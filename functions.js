@@ -1,14 +1,12 @@
-Office.onReady(() => {});
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Phishing Melden</title>
 
-function reportPhishing(event) {
-
-    const item = Office.context.mailbox.item;
-
-    Office.context.mailbox.displayNewMessageForm({
-        toRecipients: ["ondersteuning@itssunday.nl"],
-        subject: "Verdachte mail gemeld: " + item.subject,
-        htmlBody: "<p>Deze e-mail is gemeld als verdacht.</p>"
-    });
-
-    event.completed();
-}
+    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+    <script src="functions.js"></script>
+</head>
+<body>
+</body>
+</html>
