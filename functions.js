@@ -2,25 +2,27 @@ Office.onReady(() => {});
 
 function forwardPhishing(event) {
   try {
-    // 1) Moderne forward als forwardAsync beschikbaar is
+
+    // 1) Moderne route als forwardAsync beschikbaar is
     if (Office.context.mailbox.item &&
         typeof Office.context.mailbox.item.forwardAsync === "function") {
+
       Office.context.mailbox.item.forwardAsync(
         { toRecipients: ["ondersteuning@itssunday.nl"] },
-        function () {
+        function() {
           if (event && typeof event.completed === "function") event.completed();
         }
       );
       return;
     }
 
-    // 2) Fallback voor Outlook Classic: EWS gebruiken om mail als bijlage te versturen
-    let itemId = Office.context.mailbox.item.itemId;
+    // 2) Fallback EWS voor Outlook Classic
+    const itemId = Office.context.mailbox.item.itemId;
 
-    let ews = `
-      <CreateItem MessageDisposition="SaveOnly" xmlns="http://schemas.microsoft.com/exchange/services/2006/messages">
+    const ews =
+      `<CreateItem MessageDisposition="SaveOnly" xmlns="http://schemas.microsoft.com/exchange/services/2006/messages">
         <Items>
-          <Message>
+          <Message xmlns="http://schemas.microsoft.com/exchange/services/2006/types">
             <Subject>Phishingmelding</Subject>
             <Body BodyType="HTML">Deze e-mail is gemeld als phishing.</Body>
             <ToRecipients>
@@ -31,7 +33,7 @@ function forwardPhishing(event) {
             <Attachments>
               <ItemAttachment>
                 <Name>Originele email.eml</Name>
-                <ItemId Id="${itemId}" />
+                <ItemId>${itemId}</ItemId>
               </ItemAttachment>
             </Attachments>
           </Message>
@@ -40,9 +42,20 @@ function forwardPhishing(event) {
 
     Office.context.mailbox.makeEwsRequestAsync(ews, function (asyncResult) {
       if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
-        // Draft gemaakt — open hem in een nieuw venster
-        Office.context.mailbox.displayMessageForm(asyncResult.value);
+        const response = asyncResult.value;
+        Office.context.mailbox.displayMessageForm(response);
       }
 
       if (event && typeof event.completed === "function") event.completed();
     });
+
+  } catch (e) {
+    console.error(e);
+    if (event && typeof event.completed === "function") event.completed();
+  }
+}
+
+// Voor debugging / bundlers
+if (typeof module !== "undefined") {
+  module.exports = { forwardPhishing };
+}
