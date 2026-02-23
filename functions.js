@@ -1,15 +1,16 @@
-Office.onReady(() => {
-    console.log("Add-in loaded");
-});
+Office.onReady(() => {});
 
-function reportPhishing(event) {
-    const item = Office.context.mailbox.item;
+function forwardPhishing(event) {
+  Office.context.mailbox.item.forwardAsync(
+    {
+      toRecipients: ["ondersteuning@itssunday.nl"]
+    },
+    function () {
+      event.completed();
+    }
+  );
+}
 
-    Office.context.mailbox.displayNewMessageForm({
-        toRecipients: ["ondersteuning@itssunday.nl"],
-        subject: "Verdachte mail gemeld: " + (item.subject || ""),
-        htmlBody: "<p>Deze e-mail is gemeld als verdacht.</p>"
-    });
-
-    event.completed();
+if (typeof module !== "undefined") {
+  module.exports = { forwardPhishing };
 }
