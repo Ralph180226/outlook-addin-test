@@ -2,11 +2,10 @@ Office.onReady(() => {});
 
 function forwardPhishing() {
   Office.context.mailbox.item.forwardAsync(
-    {
-      toRecipients: ["ondersteuning@itssunday.nl"]
-    },
+    { toRecipients: ["ondersteuning@itssunday.nl"] },
     function () {
-      Office.context.ui.closeContainer();
+      // Sluit het paneel (optioneel in klassieke varianten)
+      try { Office.context.ui.closeContainer(); } catch (e) {}
     }
   );
 }
