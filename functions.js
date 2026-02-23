@@ -24,7 +24,7 @@ function forwardPhishing(event) {
     const originalId = item.itemId;
 
     const ews =
-      `<?xml version="1.0" encoding="utf-8"?>
+      <?xml version="1.0" encoding="utf-8"?>
        <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
                       xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages"
                       xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types">
@@ -49,7 +49,7 @@ function forwardPhishing(event) {
              </m:Items>
            </m:CreateItem>
          </soap:Body>
-       </soap:Envelope>`;
+       </soap:Envelope>;
 
     mailbox.makeEwsRequestAsync(ews, (asyncResult) => {
       if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
@@ -105,3 +105,4 @@ function escapeXml(str) {
 if (typeof module !== "undefined") {
   module.exports = { forwardPhishing };
 }
+
