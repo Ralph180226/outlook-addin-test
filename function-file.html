@@ -4,9 +4,19 @@
   <meta charset="utf-8">
   <title>Phishing melden</title>
 
-  https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
-  https://ralph180226.github.io/outlook-addin-test/functions.js"></script>
+  <!-- Office.js moet ALTIJD als eerste -->
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+
+  <!-- Jouw eigen script -->
+  <script src="https://ralph180226.github.io/outlook-addin-test/functions.js"></script>
+
+  <style>
+    body { font-family: Segoe UI, Arial, sans-serif; margin: 16px; }
+    button { padding: 10px 14px; border: none; background: #0078d4; color: #fff; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #106ebe; }
+  </style>
 </head>
+
 <body>
   <h2>Phishing melden</h2>
   <p>Klik op de knop hieronder om deze e-mail door te sturen naar ITS Sunday.</p>
