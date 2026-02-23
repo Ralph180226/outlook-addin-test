@@ -30,7 +30,7 @@ function forwardPhishing(event) {
     if (event && typeof event.completed === "function") event.completed();
 
   } catch (e) {
-    // Altijd de command beëindigen zodat de UI niet blijft hangen
+    
     if (event && typeof event.completed === "function") event.completed();
     // (optioneel) console.error(e);
   }
@@ -40,3 +40,4 @@ function forwardPhishing(event) {
 if (typeof module !== "undefined") {
   module.exports = { forwardPhishing };
 }
+
