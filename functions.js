@@ -1,13 +1,10 @@
-/* globals Office */
-
 Office.onReady(() => {});
 
 function forwardPhishing(event) {
   try {
-    // 1) Moderne route: echte forward als de API beschikbaar is
+    // 1) Moderne forward als forwardAsync beschikbaar is
     if (Office.context.mailbox.item &&
         typeof Office.context.mailbox.item.forwardAsync === "function") {
-
       Office.context.mailbox.item.forwardAsync(
         { toRecipients: ["ondersteuning@itssunday.nl"] },
         function () {
@@ -17,27 +14,35 @@ function forwardPhishing(event) {
       return;
     }
 
-    // 2) Fallback voor Outlook Classic (attachments niet meegeven, want dat breekt hier)
-    Office.context.mailbox.displayNewMessageForm({
-      toRecipients: ["ondersteuning@itssunday.nl"],
-      subject: "Phishingmelding",
-      // Tip: zet korte instructie in de body; gebruiker kan desgewenst zelf 'Doorsturen' op de originele mail klikken
-      htmlBody:
-        "<p>Deze e-mail is gemeld als phishing.</p>" +
-        "<p>Tip: gebruik de knop <b>Doorsturen</b> op de originele mail als je de volledige headers wilt meesturen.</p>"
+    // 2) Fallback voor Outlook Classic: EWS gebruiken om mail als bijlage te versturen
+    let itemId = Office.context.mailbox.item.itemId;
+
+    let ews = `
+      <CreateItem MessageDisposition="SaveOnly" xmlns="http://schemas.microsoft.com/exchange/services/2006/messages">
+        <Items>
+          <Message>
+            <Subject>Phishingmelding</Subject>
+            <Body BodyType="HTML">Deze e-mail is gemeld als phishing.</Body>
+            <ToRecipients>
+              <Mailbox>
+                <EmailAddress>ondersteuning@itssunday.nl</EmailAddress>
+              </Mailbox>
+            </ToRecipients>
+            <Attachments>
+              <ItemAttachment>
+                <Name>Originele email.eml</Name>
+                <ItemId Id="${itemId}" />
+              </ItemAttachment>
+            </Attachments>
+          </Message>
+        </Items>
+      </CreateItem>`;
+
+    Office.context.mailbox.makeEwsRequestAsync(ews, function (asyncResult) {
+      if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
+        // Draft gemaakt — open hem in een nieuw venster
+        Office.context.mailbox.displayMessageForm(asyncResult.value);
+      }
+
+      if (event && typeof event.completed === "function") event.completed();
     });
-
-    if (event && typeof event.completed === "function") event.completed();
-
-  } catch (e) {
-    
-    if (event && typeof event.completed === "function") event.completed();
-    // (optioneel) console.error(e);
-  }
-}
-
-// (optioneel voor bundlers/tests)
-if (typeof module !== "undefined") {
-  module.exports = { forwardPhishing };
-}
-
