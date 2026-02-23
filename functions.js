@@ -1,4 +1,5 @@
-Office.onReady(() => {});
+
+Office.onReady(() => { });
 
 function forwardPhishing(event) {
   try {
@@ -9,7 +10,7 @@ function forwardPhishing(event) {
 
       Office.context.mailbox.item.forwardAsync(
         { toRecipients: ["ondersteuning@itssunday.nl"] },
-        function() {
+        function () {
           if (event && typeof event.completed === "function") event.completed();
         }
       );
@@ -17,36 +18,66 @@ function forwardPhishing(event) {
     }
 
     // 2) Fallback EWS voor Outlook Classic
-    const itemId = Office.context.mailbox.item.itemId;
+    const mailbox = Office.context.mailbox;
+    const itemId = mailbox.item.itemId;
 
-    const ews =
-      `<CreateItem MessageDisposition="SaveOnly" xmlns="http://schemas.microsoft.com/exchange/services/2006/messages">
-        <Items>
-          <Message xmlns="http://schemas.microsoft.com/exchange/services/2006/types">
-            <Subject>Phishingmelding</Subject>
-            <Body BodyType="HTML">Deze e-mail is gemeld als phishing.</Body>
-            <ToRecipients>
-              <Mailbox>
-                <EmailAddress>ondersteuning@itssunday.nl</EmailAddress>
-              </Mailbox>
-            </ToRecipients>
-            <Attachments>
-              <ItemAttachment>
-                <Name>Originele email.eml</Name>
-                <ItemId>${itemId}</ItemId>
-              </ItemAttachment>
-            </Attachments>
-          </Message>
-        </Items>
-      </CreateItem>`;
+    // Eerst REST-ID naar EWS-ID converteren
+    mailbox.convertToEwsIdAsync(itemId, (idResult) => {
 
-    Office.context.mailbox.makeEwsRequestAsync(ews, function (asyncResult) {
-      if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
-        const response = asyncResult.value;
-        Office.context.mailbox.displayMessageForm(response);
+      if (idResult.status !== Office.AsyncResultStatus.Succeeded) {
+        console.error("EWS conversie mislukt:", idResult.error);
+        if (event) event.completed();
+        return;
       }
 
-      if (event && typeof event.completed === "function") event.completed();
+      const ewsId = idResult.value;
+
+      // Correcte SOAP envelope
+      const ews =
+        `<?xml version="1.0" encoding="utf-8"?>
+         <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
+                        xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages"
+                        xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types">
+           <soap:Body>
+             <m:CreateItem MessageDisposition="SaveOnly">
+               <m:Items>
+                 <t:Message>
+                   <t:Subject>Phishingmelding</t:Subject>
+                   <t:Body BodyType="HTML">Deze e-mail is gemeld als phishing.</t:Body>
+                   <t:ToRecipients>
+                     <t:Mailbox>
+                       <t:EmailAddress>ondersteuning@itssunday.nl</t:EmailAddress>
+                     </t:Mailbox>
+                   </t:ToRecipients>
+                   <t:Attachments>
+                     <t:ItemAttachment>
+                       <t:Name>Originele email.eml</t:Name>
+                       <t:ItemId>${ewsId}</t:ItemId>
+                     </t:ItemAttachment>
+                   </t:Attachments>
+                 </t:Message>
+               </m:Items>
+             </m:CreateItem>
+           </soap:Body>
+         </soap:Envelope>`;
+
+      mailbox.makeEwsRequestAsync(ews, function (asyncResult) {
+        if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
+
+          // ID van nieuw item uit response halen
+          const response = asyncResult.value;
+          const match = response.match(/<t:ItemId Id="([^"]+)"/);
+
+          if (match) {
+            const newId = match[1];
+            mailbox.displayMessageForm(newId);
+          } else {
+            console.error("Kon nieuw ItemId niet vinden in EWS response.");
+          }
+        }
+
+        if (event && typeof event.completed === "function") event.completed();
+      });
     });
 
   } catch (e) {
@@ -59,3 +90,4 @@ function forwardPhishing(event) {
 if (typeof module !== "undefined") {
   module.exports = { forwardPhishing };
 }
+
