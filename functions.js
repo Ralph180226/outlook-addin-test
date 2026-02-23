@@ -1,9 +1,12 @@
+/* globals Office */
+
 Office.onReady(() => {});
 
 function forwardPhishing(event) {
   try {
-    // Als forwardAsync bestaat → echte forward gebruiken
-    if (Office.context.mailbox.item && typeof Office.context.mailbox.item.forwardAsync === "function") {
+    // 1) Moderne route: echte forward als de API beschikbaar is
+    if (Office.context.mailbox.item &&
+        typeof Office.context.mailbox.item.forwardAsync === "function") {
 
       Office.context.mailbox.item.forwardAsync(
         { toRecipients: ["ondersteuning@itssunday.nl"] },
@@ -11,31 +14,29 @@ function forwardPhishing(event) {
           if (event && typeof event.completed === "function") event.completed();
         }
       );
-
-    } else {
-      // FALLBACK voor Outlook Classic & clients zonder forwardAsync
-      Office.context.mailbox.displayNewMessageForm({
-        toRecipients: ["ondersteuning@itssunday.nl"],
-        subject: "Phishingmelding",
-        htmlBody: "<p>Deze e-mail is gemeld als phishing.</p><p>De originele e-mail is als bijlage toegevoegd.</p>",
-        attachments: [
-          {
-            type: Office.MailboxEnums.AttachmentType.Item,
-            itemId: Office.context.mailbox.item.itemId
-          }
-        ]
-      });
-
-      if (event && typeof event.completed === "function") event.completed();
+      return;
     }
 
-  } catch (e) {
-    console.error(e);
+    // 2) Fallback voor Outlook Classic (attachments niet meegeven, want dat breekt hier)
+    Office.context.mailbox.displayNewMessageForm({
+      toRecipients: ["ondersteuning@itssunday.nl"],
+      subject: "Phishingmelding",
+      // Tip: zet korte instructie in de body; gebruiker kan desgewenst zelf 'Doorsturen' op de originele mail klikken
+      htmlBody:
+        "<p>Deze e-mail is gemeld als phishing.</p>" +
+        "<p>Tip: gebruik de knop <b>Doorsturen</b> op de originele mail als je de volledige headers wilt meesturen.</p>"
+    });
+
     if (event && typeof event.completed === "function") event.completed();
+
+  } catch (e) {
+    // Altijd de command beëindigen zodat de UI niet blijft hangen
+    if (event && typeof event.completed === "function") event.completed();
+    // (optioneel) console.error(e);
   }
 }
 
-// Voor debug/bundlers
+// (optioneel voor bundlers/tests)
 if (typeof module !== "undefined") {
   module.exports = { forwardPhishing };
 }
