@@ -1,16 +1,12 @@
 Office.onReady(() => {});
 
-function forwardPhishing(event) {
+function forwardPhishing() {
   Office.context.mailbox.item.forwardAsync(
     {
       toRecipients: ["ondersteuning@itssunday.nl"]
     },
     function () {
-      event.completed();
+      Office.context.ui.closeContainer();
     }
   );
-}
-
-if (typeof module !== "undefined") {
-  module.exports = { forwardPhishing };
 }
