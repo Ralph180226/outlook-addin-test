@@ -20,42 +20,46 @@ function forwardPhishing(event) {
       return;
     }
 
-    // In Classic is item.itemId al EWS-compatibel → direct gebruiken
     const originalId = item.itemId;
 
-    const ews =
-      <?xml version="1.0" encoding="utf-8"?>
-       <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
-                      xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages"
-                      xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types">
-         <soap:Body>
-           <m:CreateItem MessageDisposition="SaveOnly">
-             <m:Items>
-               <t:Message>
-                 <t:Subject>Phishingmelding</t:Subject>
-                 <t:Body BodyType="HTML">Deze e-mail is gemeld als phishing.</t:Body>
-                 <t:ToRecipients>
-                   <t:Mailbox>
-                     <t:EmailAddress>ondersteuning@itssunday.nl</t:EmailAddress>
-                   </t:Mailbox>
-                 </t:ToRecipients>
-                 <t:Attachments>
-                   <t:ItemAttachment>
-                     <t:Name>Originele email.eml</t:Name>
-                     <t:ItemId>${escapeXml(originalId)}</t:ItemId>
-                   </t:ItemAttachment>
-                 </t:Attachments>
-               </t:Message>
-             </m:Items>
-           </m:CreateItem>
-         </soap:Body>
-       </soap:Envelope>;
+    // --------- FIX HIER: XML in backticks ---------
+    const ews = `
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
+               xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages"
+               xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types">
+  <soap:Body>
+    <m:CreateItem MessageDisposition="SaveOnly">
+      <m:Items>
+        <t:Message>
+          <t:Subject>Phishingmelding</t:Subject>
+          <t:Body BodyType="HTML">Deze e-mail is gemeld als phishing.</t:Body>
+          <t:ToRecipients>
+            <t:Mailbox>
+              <t:EmailAddress>ondersteuning@itssunday.nl</t:EmailAddress>
+            </t:Mailbox>
+          </t:ToRecipients>
+          <t:Attachments>
+            <t:ItemAttachment>
+              <t:Name>Originele email.eml</t:Name>
+              <t:ItemId>${escapeXml(originalId)}</t:ItemId>
+            </t:ItemAttachment>
+          </t:Attachments>
+        </t:Message>
+      </m:Items>
+    </m:CreateItem>
+  </soap:Body>
+</soap:Envelope>
+`;
+    // --------- FIX EINDE ---------
 
     mailbox.makeEwsRequestAsync(ews, (asyncResult) => {
       if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
         const xml = asyncResult.value;
-        // Haal de nieuwe ItemId uit de EWS-response
+
+        // Correcte regex: in EWS zit GEEN &lt; maar echte <
         const match = xml.match(/<t:ItemId Id="([^"]+)"/);
+
         if (match) {
           const newId = match[1];
           mailbox.displayMessageForm(newId); // Open concept met .eml bijlage
@@ -101,8 +105,8 @@ function escapeXml(str) {
     .replace(/'/g, "&apos;");
 }
 
-// Voor bundlers/debug
 if (typeof module !== "undefined") {
   module.exports = { forwardPhishing };
 }
+
 
