@@ -1,7 +1,7 @@
 Office.onReady(() => {
-  // Als we in COMPOSE zitten, automatisch proberen bijlage toe te voegen
   const item = Office.context.mailbox?.item;
 
+  // In compose mode: probeer automatisch bijlage toe te voegen
   if (item && item.addItemAttachmentAsync) {
     setTimeout(attachOriginalMail, 300);
   }
@@ -9,7 +9,7 @@ Office.onReady(() => {
 
 /**
  * READ-modus:
- * 1. ItemId opslaan via RoamingSettings (gedeeld tussen READ & COMPOSE)
+ * 1. ItemId opslaan (RoamingSettings = gedeelde opslag)
  * 2. Nieuw bericht openen
  */
 function forwardPhishing() {
@@ -23,13 +23,13 @@ function forwardPhishing() {
     }
 
     const originalId = item.itemId;
-
-    // Opslaan in RoamingSettings
     const settings = Office.context.roamingSettings;
+
+    // Sla originele mail op
     settings.set("phishOriginalId", originalId);
 
     settings.saveAsync(() => {
-      // Nieuw compose-bericht openen
+      // Open nieuw compose bericht
       Office.context.mailbox.displayNewMessageForm({
         toRecipients: ["ondersteuning@itssunday.nl"],
         subject: "Phishingmelding",
@@ -44,7 +44,7 @@ function forwardPhishing() {
 
 /**
  * COMPOSE-modus:
- * Originele mail als bijlage toevoegen
+ * Originele mail automatisch als bijlage toevoegen
  */
 function attachOriginalMail() {
   try {
@@ -64,10 +64,12 @@ function attachOriginalMail() {
       (res) => {
         if (res.status === Office.AsyncResultStatus.Succeeded) {
           console.log("Bijlage toegevoegd:", res.value);
+
+          // Opschonen
           settings.remove("phishOriginalId");
           settings.saveAsync();
         } else {
-          console.error("Fout bij bijlage toevoegen:", res.error);
+          console.error("Bijlage fout:", res.error);
         }
       }
     );
