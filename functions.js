@@ -1,19 +1,13 @@
 Office.onReady(() => {});
 
+/**
+ * Hoofdactie vanuit de leesweergave (ItemRead)
+ */
 function forwardPhishing(event) {
   try {
     const mailbox = Office.context.mailbox;
     const item = mailbox.item;
 
-    // Als forwardAsync bestaat (nieuwe Outlook/web), gebruik die – opent compose maar voegt geen .eml toe.
-    if (item && typeof item.forwardAsync === "function") {
-      item.forwardAsync({ toRecipients: ["ondersteuning@itssunday.nl"] }, () => {
-        if (event && typeof event.completed === "function") event.completed();
-      });
-      return;
-    }
-
-    // Classic Outlook EWS-pad
     if (!mailbox || !item || !item.itemId) {
       console.error("Geen mailbox of itemId.");
       if (event && typeof event.completed === "function") event.completed();
@@ -22,93 +16,68 @@ function forwardPhishing(event) {
 
     const originalId = item.itemId;
 
-    // --------- FIX HIER: XML in backticks ---------
-  
-const ews = `
-<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
-               xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages"
-               xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types">
-  <soap:Body>
-    <m:CreateItem MessageDisposition="SaveOnly">
-      <m:Items>
-        <t:Message>
-          <t:Subject>Phishingmelding</t:Subject>
-          <t:Body BodyType="HTML">Deze e-mail is gemeld als phishing.</t:Body>
-          <t:ToRecipients>
-            <t:Mailbox>
-              <t:EmailAddress>ondersteuning@itssunday.nl</t:EmailAddress>
-            </t:Mailbox>
-          </t:ToRecipients>
-          <t:Attachments>
-            <t:ItemAttachment>
-              <t:Name>Originele email.eml</t:Name>
-              <t:ItemId>${escapeXml(originalId)}</t:ItemId>
-            </t:ItemAttachment>
-          </t:Attachments>
-        </t:Message>
-      </m:Items>
-    </m:CreateItem>
-  </soap:Body>
-</soap:Envelope>
-`;
-    // --------- FIX EINDE ---------
+    // Bewaar het ItemId zodat compose het later kan ophalen
+    localStorage.setItem("phishOriginalId", originalId);
 
-    mailbox.makeEwsRequestAsync(ews, (asyncResult) => {
-      if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
-        const xml = asyncResult.value;
-
-        // Correcte regex: in EWS zit GEEN &lt; maar echte <
-        const match = xml.match(/<t:ItemId Id="([^"]+)"/);
-
-        if (match) {
-          const newId = match[1];
-          mailbox.displayMessageForm(newId); // Open concept met .eml bijlage
-        } else {
-          console.error("Kon nieuw ItemId niet vinden in EWS-response.");
-          notifyUser("Concept is aangemaakt, maar kon niet automatisch geopend worden.");
-        }
-      } else {
-        console.error("EWS-fout:", asyncResult.error);
-        notifyUser("Kon geen concept maken via EWS.");
-      }
-
-      if (event && typeof event.completed === "function") event.completed();
+    // Open een nieuwe mail (COMPOSE)
+    Office.context.mailbox.displayNewMessageForm({
+      toRecipients: ["ondersteuning@itssunday.nl"],
+      subject: "Phishingmelding",
+      htmlBody: "Deze e-mail is gemeld als phishing."
     });
 
+    if (event && typeof event.completed === "function") event.completed();
   } catch (e) {
     console.error(e);
     if (event && typeof event.completed === "function") event.completed();
   }
 }
 
-// Optionele notificatie in de leesweergave
-function notifyUser(message) {
+/**
+ * Functie die automatisch draait als we in COMPOSE zitten.
+ * Voegt de originele mail toe als bijlage.
+ */
+function attachOriginalEmail() {
   try {
-    const nm = Office.context?.mailbox?.item?.notificationMessages;
-    if (nm && typeof nm.addAsync === "function") {
-      nm.addAsync("phishingInfo", {
-        type: "informationalMessage",
-        message,
-        icon: "icon16",
-        persistent: false
-      });
+    const originalId = localStorage.getItem("phishOriginalId");
+    if (!originalId) {
+      console.log("Geen originele mail gevonden in storage.");
+      return;
     }
-  } catch (_) { /* ignore */ }
+
+    Office.context.mailbox.item.addItemAttachmentAsync(
+      originalId,
+      "Originele email",
+      (result) => {
+        if (result.status === Office.AsyncResultStatus.Succeeded) {
+          console.log("Originele email toegevoegd als bijlage:", result.value);
+          localStorage.removeItem("phishOriginalId"); // opschonen
+        } else {
+          console.error("Bijlage mislukt:", result.error);
+        }
+      }
+    );
+  } catch (e) {
+    console.error("Fout bij het toevoegen van de bijlage:", e);
+  }
 }
 
-function escapeXml(str) {
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
+/**
+ * Automatische COMPOSE-detectie
+ */
+Office.onReady(() => {
+  const item = Office.context.mailbox?.item;
+
+  // Check COMPOSE-modus
+  if (
+    item &&
+    (item.displayReplyForm || item.addItemAttachmentAsync) // kenmerken van compose
+  ) {
+    // Kleine delay zodat compose UI stabiel is
+    setTimeout(attachOriginalEmail, 300);
+  }
+});
 
 if (typeof module !== "undefined") {
   module.exports = { forwardPhishing };
 }
-
-
-
