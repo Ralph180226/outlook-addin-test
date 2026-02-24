@@ -23,7 +23,8 @@ function forwardPhishing(event) {
     const originalId = item.itemId;
 
     // --------- FIX HIER: XML in backticks ---------
-    const ews = `
+  
+const ews = `
 <?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
                xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages"
@@ -108,5 +109,6 @@ function escapeXml(str) {
 if (typeof module !== "undefined") {
   module.exports = { forwardPhishing };
 }
+
 
 
