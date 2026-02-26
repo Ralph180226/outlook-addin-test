@@ -5,13 +5,15 @@ function log(msg) {
   if (box) box.textContent += msg + "\n";
 }
 
-// Controle of we in COMPOSE zitten
+// Controle: zijn we in compose mode?
 function isCompose() {
   const item = Office.context.mailbox?.item;
   return item && typeof item.addItemAttachmentAsync === "function";
 }
 
-// ---------- READ MODE ----------
+// ------------------------------------------------------------
+// READ MODE – Start phishing forwarding
+// ------------------------------------------------------------
 function forwardPhishing() {
   try {
     const mailbox = Office.context.mailbox;
@@ -24,6 +26,7 @@ function forwardPhishing() {
 
     const id = item.itemId;
 
+    // itemId opslaan zodat compose het later kan ophalen
     const settings = Office.context.roamingSettings;
     settings.set("phishOriginalId", id);
 
@@ -36,17 +39,18 @@ function forwardPhishing() {
         htmlBody: "Deze e-mail is gemeld als phishing."
       });
 
-      // ⭐ BELANGRIJK: taskpane opnieuw openen zodat compose-JS draait
-      Office.context.ui.displayTaskPaneAsync(
-        "https://ralph180226.github.io/outlook-addin-test/function-file.html"
-      );
+      // ⭐ BELANGRIJK:
+      // GEEN displayTaskPaneAsync → dit werkt NIET in Outlook Classic.
+      // Compose-mode wordt automatisch geactiveerd door FormSettings.
     });
   } catch (e) {
     log("Fout in forwardPhishing: " + e);
   }
 }
 
-// ---------- COMPOSE MODE ----------
+// ------------------------------------------------------------
+// COMPOSE MODE – Id ophalen en bijlage toevoegen
+// ------------------------------------------------------------
 function attachOriginalMail() {
   if (!isCompose()) {
     log("Niet in compose, bijlage toevoegen overslaan.");
@@ -70,6 +74,7 @@ function attachOriginalMail() {
     (res) => {
       if (res.status === Office.AsyncResultStatus.Succeeded) {
         log("Bijlage toegevoegd ✓");
+
         settings.remove("phishOriginalId");
         settings.saveAsync();
       } else {
@@ -79,31 +84,34 @@ function attachOriginalMail() {
   );
 }
 
-// ---------- NIEUW: Betrouwbare wachtroutine voor compose ----------
+// ------------------------------------------------------------
+// WACHTRUTINE – Compose API verschijnt soms vertraagd
+// ------------------------------------------------------------
 function waitForComposeReady() {
   const item = Office.context.mailbox?.item;
 
-  // Compose API beschikbaar?
   if (item && typeof item.addItemAttachmentAsync === "function") {
     log("Compose API klaar → bijlage toevoegen...");
     attachOriginalMail();
     return;
   }
 
-  // Nog niet klaar → opnieuw proberen
   log("Compose nog niet klaar, opnieuw proberen...");
   setTimeout(waitForComposeReady, 300);
 }
 
-// ---------- AUTO: detecteer compose en wacht tot API klaar is ----------
+// ------------------------------------------------------------
+// AUTO-START – Detecteer compose en start bijlage-proces
+// ------------------------------------------------------------
 Office.onReady(() => {
-  const item = Office.context.mailbox?.item;
-
-  if (isCompose()) {
-    log("Mode: COMPOSE (direct gedetecteerd)");
-    waitForComposeReady();
-  } else {
-    log("Mode: READ");
+  try {
+    if (isCompose()) {
+      log("Mode: COMPOSE");
+      waitForComposeReady();
+    } else {
+      log("Mode: READ");
+    }
+  } catch (e) {
+    console.error("Startup error:", e);
   }
 });
-
