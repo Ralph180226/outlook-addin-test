@@ -115,3 +115,11 @@ Office.onReady(() => {
     console.error("Startup error:", e);
   }
 });
+
+// Belangrijk: Outlook Classic activeert compose-mode alleen als er actions bestaan
+Office.actions.associate("dummyComposeAction", function() {
+  // Wordt nooit gebruikt, maar activeert compose-mode zodat scripts laden
+  return;
+});
+
+
