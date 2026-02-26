@@ -77,14 +77,29 @@ function attachOriginalMail() {
   );
 }
 
-// ---------- AUTO: detecteer compose en voeg bijlage toe ----------
+// ---------- NIEUW: Betrouwbare wachtroutine voor compose ----------
+function waitForComposeReady() {
+  const item = Office.context.mailbox?.item;
+
+  // Compose API beschikbaar?
+  if (item && typeof item.addItemAttachmentAsync === "function") {
+    log("Compose API klaar → bijlage toevoegen...");
+    attachOriginalMail();
+    return;
+  }
+
+  // Nog niet klaar → opnieuw proberen
+  log("Compose nog niet klaar, opnieuw proberen...");
+  setTimeout(waitForComposeReady, 300);
+}
+
+// ---------- AUTO: detecteer compose en wacht tot API klaar is ----------
 Office.onReady(() => {
   const item = Office.context.mailbox?.item;
 
   if (isCompose()) {
-    log("Mode: COMPOSE (itemCompose gedetecteerd)");
-    // kleine delay zodat compose API klaar is
-    setTimeout(attachOriginalMail, 400);
+    log("Mode: COMPOSE (direct gedetecteerd)");
+    waitForComposeReady();
   } else {
     log("Mode: READ");
   }
