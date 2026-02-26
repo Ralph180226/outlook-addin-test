@@ -24,7 +24,6 @@ function forwardPhishing() {
 
     const id = item.itemId;
 
-    // opslaan in roaming settings
     const settings = Office.context.roamingSettings;
     settings.set("phishOriginalId", id);
 
@@ -37,7 +36,10 @@ function forwardPhishing() {
         htmlBody: "Deze e-mail is gemeld als phishing."
       });
 
-      // READY: Compose zal nu ons script opnieuw laden.
+      // ⭐ BELANGRIJK: taskpane opnieuw openen zodat compose-JS draait
+      Office.context.ui.displayTaskPaneAsync(
+        "https://ralph180226.github.io/outlook-addin-test/function-file.html"
+      );
     });
   } catch (e) {
     log("Fout in forwardPhishing: " + e);
@@ -104,3 +106,4 @@ Office.onReady(() => {
     log("Mode: READ");
   }
 });
+
