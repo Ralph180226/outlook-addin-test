@@ -3,13 +3,15 @@
 <head>
   <meta charset="utf-8" />
 
+  <!-- Office.js + jouw script -->
   <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
-  <script src="https://ralph180226.github.io/outlook-addin-test/functions.js?v=100"></script>
+  <script src="https://ralph180226.github.io/outlook-addin-test/functions.js?v=200"></script>
 
   <title>Phishing melden</title>
 
   <style>
     body { font-family: Arial, sans-serif; padding: 16px; }
+    .row { margin: 8px 0; }
     button {
       padding: 10px 14px;
       background: #0078d4;
@@ -17,24 +19,35 @@
       border: none;
       border-radius: 4px;
       cursor: pointer;
+      margin-right: 8px;
     }
     button:hover { background: #106ebe; }
     #status {
-      margin-top: 10px;
+      margin-top: 12px;
       padding: 8px;
       border: 1px solid #ccc;
       background: #f3f2f1;
       font-size: 12px;
       white-space: pre-line;
     }
+    .hint { color:#555; font-size:12px; margin-top:4px; }
   </style>
 </head>
 
 <body>
   <h2>Phishing melden</h2>
-  <p>Klik op de knop hieronder om deze e-mail door te sturen naar ITS Sunday.</p>
 
-  <button onclick="forwardPhishing()">Meld phishing</button>
+  <!-- READ: melding doen (opent concept) -->
+  <div class="row">
+    <button onclick="forwardPhishing()">Meld phishing</button>
+    <div class="hint">Stap 1 in READ: opent een nieuw concept en bewaart de verwijzing naar het origineel.</div>
+  </div>
+
+  <!-- COMPOSE: originele mail als bijlage toevoegen -->
+  <div class="row">
+    <button onclick="onComposeAttachClick()">Voeg originele e‑mail toe</button>
+    <div class="hint">Stap 2 in COMPOSE: voegt de originele e‑mail als .eml bijlage toe.</div>
+  </div>
 
   <div id="status"></div>
 </body>
