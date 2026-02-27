@@ -2,35 +2,25 @@
 <html>
 <head>
   <meta charset="utf-8" />
-
-  <!-- Office.js + functions -->
   <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
-  <script src="https://ralph180226.github.io/outlook-addin-test/functions.js?v=600"></script>
-
+  <script src="https://ralph180226.github.io/outlook-addin-test/functions.js?v=800"></script>
   <style>
     body { font-family: Arial; padding: 15px; }
     img { width: 80px; }
     textarea { width: 100%; height: 90px; margin-top: 6px; }
-    button {
-      margin-top: 10px;
-      padding: 10px 14px;
-      background: #0078d4;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor:pointer;
-    }
-    #status {
-      margin-top: 12px;
-      padding: 8px;
-      background: #f3f2f1;
-      border: 1px solid #ccc;
-      white-space: pre-line;
-      font-size: 12px;
-    }
+    button { margin-top: 10px; padding: 10px 14px; background:#0078d4; color:#fff; border:0; border-radius:4px; cursor:pointer; }
+    #status { margin-top: 12px; padding:8px; background:#f3f2f1; border:1px solid #ccc; white-space:pre-line; font-size:12px; }
   </style>
 </head>
-
+<body>
+  <img src="https://ralph180226.github.io/outlook-addin-test/icon-64.png" alt="ITS Sunday">
+  <h2>Phishing melding</h2>
+  <p>Extra informatie (optioneel):<br><small>Laat leeg indien geen extra info</small></p>
+  <textarea id="extra"></textarea>
+  <button onclick="sendPhishingReport()">Verstuur phishing melding</button>
+  <div id="status"></div>
+</body>
+</html>
 <body>
 
   <img src="https://github.com/Ralph180226/outlook-addin-test/icon.png">
@@ -48,6 +38,7 @@
 
 </body>
 </html>
+
 
 
 
