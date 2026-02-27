@@ -5,50 +5,48 @@ function log(msg) {
   if (box) box.textContent += msg + "\n";
 }
 
-// ===== Helpers =====
+// Check compose mode
 function isCompose() {
   const item = Office.context.mailbox?.item;
   return !!(item && typeof item.addItemAttachmentAsync === "function");
 }
 
-// ===== READ: Meld phishing → nieuw concept openen =====
-function forwardPhishing() {
+// ===== READ: sla originele mail-ID op + open compose =====
+function sendPhishingReport() {
   try {
-    const mailbox = Office.context.mailbox;
-    const item = mailbox?.item;
-
+    const item = Office.context.mailbox?.item;
     if (!item || !item.itemId) {
-      log("Fout: geen itemId in READ mode.");
+      log("Fout: geen itemId beschikbaar.");
       return;
     }
 
     const id = item.itemId;
+    const extra = document.getElementById("extra")?.value || "";
 
-    // Id opslaan voor compose-handler
     const settings = Office.context.roamingSettings;
     settings.set("phishOriginalId", id);
-
+    settings.set("phishExtra", extra);
     settings.saveAsync(() => {
-      log("ItemId opgeslagen. Open compose...");
-
+      log("Gegevens opgeslagen. Open compose...");
+      
       Office.context.mailbox.displayNewMessageForm({
         toRecipients: ["ondersteuning@itssunday.nl"],
-        subject: "Phishingmelding",
-        htmlBody: "Deze e-mail is gemeld als phishing."
-        // Bijlagen via displayNewMessageForm laten we achterwege;
-        // we voegen de .eml bijlage in compose zelf toe via de knop.
+        subject: "Phishingmelding ITS Sunday",
+        htmlBody: "<p>Er is een phishingmelding verstuurd.</p><p><b>Extra info:</b><br>" +
+                  (extra.trim() ? extra : "(geen)") +
+                  "</p>"
       });
     });
   } catch (e) {
-    log("Fout in forwardPhishing: " + e);
+    log("Fout sendPhishingReport(): " + e);
   }
 }
 
-// ===== COMPOSE: originele mail toevoegen als .eml =====
+// ===== COMPOSE: voeg originele mail toe =====
 function attachOriginalMail(done) {
   if (!isCompose()) {
-    log("Niet in compose, bijlage toevoegen overslaan.");
-    if (typeof done === "function") done();
+    log("Niet in compose mode.");
+    done && done();
     return;
   }
 
@@ -57,30 +55,30 @@ function attachOriginalMail(done) {
 
   if (!id) {
     log("Geen opgeslagen itemId gevonden.");
-    if (typeof done === "function") done();
+    done && done();
     return;
   }
 
   log("Bijlage toevoegen...");
 
-  const composeItem = Office.context.mailbox.item;
-  composeItem.addItemAttachmentAsync(
-    id,                   // EWS ItemId van de originele mail
-    "Originele e-mail",   // weergavenaam
+  Office.context.mailbox.item.addItemAttachmentAsync(
+    id,
+    "Originele e-mail.eml",
     (res) => {
       if (res.status === Office.AsyncResultStatus.Succeeded) {
-        log("Bijlage toegevoegd ✓");
+        log("Originele e-mail toegevoegd ✓");
         settings.remove("phishOriginalId");
+        settings.remove("phishExtra");
         settings.saveAsync();
       } else {
         log("Bijlage fout: " + JSON.stringify(res.error));
       }
-      if (typeof done === "function") done();
+      done && done();
     }
   );
 }
 
-// ===== Wacht tot compose-API beschikbaar is (soms async geladen) =====
+// ===== Compose ready helper =====
 function waitForComposeReady(cb) {
   const item = Office.context.mailbox?.item;
   if (item && typeof item.addItemAttachmentAsync === "function") {
@@ -90,22 +88,17 @@ function waitForComposeReady(cb) {
   setTimeout(() => waitForComposeReady(cb), 300);
 }
 
-// ===== Click-handler voor de COMPOSE-knop =====
-function onComposeAttachClick() {
-  // geen auto-attach bij load; pas bij klik
-  waitForComposeReady(() => attachOriginalMail());
-}
-
-// ===== Auto-start: alleen logging (geen auto-attach) =====
+// ===== Auto-run in compose =====
 Office.onReady(() => {
   try {
     if (isCompose()) {
-      log("Mode: COMPOSE");
-      // GEEN automatische bijlage meer hier.
+      log("Compose modus gedetecteerd.");
+      waitForComposeReady(() => attachOriginalMail());
     } else {
-      log("Mode: READ");
+      log("Read modus gedetecteerd.");
     }
   } catch (e) {
-    console.error("Startup error:", e);
+    console.error(e);
   }
 });
+
