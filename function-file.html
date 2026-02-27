@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8" />
 
-  <!-- Office.js + jouw script -->
+  <!-- Office API + jouw script -->
   <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
-  <script src="https://ralph180226.github.io/outlook-addin-test/functions.js?v=200"></script>
+  <script src="https://ralph180226.github.io/outlook-addin-test/functions.js?v=300"></script>
 
-  <title>Phishing melden</title>
+  <title>ITS Sunday Phishing Reporter</title>
 
   <style>
     body { font-family: Arial, sans-serif; padding: 16px; }
-    .row { margin: 8px 0; }
+    img { width: 80px; margin-bottom: 10px; }
     button {
       padding: 10px 14px;
       background: #0078d4;
@@ -19,9 +19,16 @@
       border: none;
       border-radius: 4px;
       cursor: pointer;
-      margin-right: 8px;
+      margin-top: 10px;
     }
     button:hover { background: #106ebe; }
+    textarea {
+      width: 100%;
+      height: 80px;
+      margin-top: 6px;
+      padding: 6px;
+      font-family: Arial;
+    }
     #status {
       margin-top: 12px;
       padding: 8px;
@@ -30,24 +37,21 @@
       font-size: 12px;
       white-space: pre-line;
     }
-    .hint { color:#555; font-size:12px; margin-top:4px; }
   </style>
 </head>
 
 <body>
-  <h2>Phishing melden</h2>
+  <img src="https://github.com/Ralph180226/outlook-addin-test/icon.png" alt="ITS Sunday Logo">
 
-  <!-- READ: melding doen (opent concept) -->
-  <div class="row">
-    <button onclick="forwardPhishing()">Meld phishing</button>
-    <div class="hint">Stap 1 in READ: opent een nieuw concept en bewaart de verwijzing naar het origineel.</div>
-  </div>
+  <h2>Phishing melding</h2>
 
-  <!-- COMPOSE: originele mail als bijlage toevoegen -->
-  <div class="row">
-    <button onclick="onComposeAttachClick()">Voeg originele e‑mail toe</button>
-    <div class="hint">Stap 2 in COMPOSE: voegt de originele e‑mail als .eml bijlage toe.</div>
-  </div>
+  <p>Extra informatie (optioneel):<br>
+     <small>Laat leeg indien geen extra info</small>
+  </p>
+  <textarea id="extra"></textarea>
+
+  <br>
+  <button onclick="sendPhishingReport()">Verstuur phishing melding</button>
 
   <div id="status"></div>
 </body>
