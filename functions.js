@@ -1,104 +1,98 @@
-// ===== Kleine logger =====
+// ===== Logger =====
 function log(msg) {
   console.log(msg);
   const box = document.getElementById("status");
   if (box) box.textContent += msg + "\n";
 }
 
-// Check compose mode
+// ===== Helpers =====
 function isCompose() {
-  const item = Office.context.mailbox?.item;
-  return !!(item && typeof item.addItemAttachmentAsync === "function");
+  const it = Office.context.mailbox?.item;
+  return !!(it && typeof it.addItemAttachmentAsync === "function");
 }
 
-// ===== READ: sla originele mail-ID op + open compose =====
+// ===== READ: stuur melding & open compose =====
 function sendPhishingReport() {
-  try {
-    const item = Office.context.mailbox?.item;
-    if (!item || !item.itemId) {
-      log("Fout: geen itemId beschikbaar.");
-      return;
-    }
-
-    const id = item.itemId;
-    const extra = document.getElementById("extra")?.value || "";
-
-    const settings = Office.context.roamingSettings;
-    settings.set("phishOriginalId", id);
-    settings.set("phishExtra", extra);
-    settings.saveAsync(() => {
-      log("Gegevens opgeslagen. Open compose...");
-      
-      Office.context.mailbox.displayNewMessageForm({
-        toRecipients: ["ondersteuning@itssunday.nl"],
-        subject: "Phishingmelding ITS Sunday",
-        htmlBody: "<p>Er is een phishingmelding verstuurd.</p><p><b>Extra info:</b><br>" +
-                  (extra.trim() ? extra : "(geen)") +
-                  "</p>"
-      });
-    });
-  } catch (e) {
-    log("Fout sendPhishingReport(): " + e);
+  const item = Office.context.mailbox?.item;
+  if (!item || !item.itemId) {
+    log("Geen itemId gevonden.");
+    return;
   }
+
+  const id = item.itemId;
+  const extra = document.getElementById("extra")?.value || "";
+
+  const settings = Office.context.roamingSettings;
+  settings.set("origMailId", id);
+  settings.set("extraText", extra);
+
+  settings.saveAsync(() => {
+    log("Gegevens opgeslagen. Open compose...");
+    
+    Office.context.mailbox.displayNewMessageForm({
+      toRecipients: ["ondersteuning@itssunday.nl"],
+      subject: "Phishingmelding ITS Sunday",
+      htmlBody:
+        "<p>Er is een phishingmelding verstuurd.</p>" +
+        "<p><b>Extra info:</b><br>" +
+        (extra.trim() ? extra : "(geen)") + "</p>"
+    });
+  });
 }
 
 // ===== COMPOSE: voeg originele mail toe =====
 function attachOriginalMail(done) {
   if (!isCompose()) {
-    log("Niet in compose mode.");
-    done && done();
+    done?.();
     return;
   }
 
   const settings = Office.context.roamingSettings;
-  const id = settings.get("phishOriginalId");
+  const id = settings.get("origMailId");
 
   if (!id) {
-    log("Geen opgeslagen itemId gevonden.");
-    done && done();
+    log("Geen originele mail-id gevonden.");
+    done?.();
     return;
   }
 
-  log("Bijlage toevoegen...");
+  log("Originele e-mail wordt toegevoegd...");
 
   Office.context.mailbox.item.addItemAttachmentAsync(
     id,
-    "Originele e-mail.eml",
+    "Originele-email.eml",
     (res) => {
       if (res.status === Office.AsyncResultStatus.Succeeded) {
         log("Originele e-mail toegevoegd ✓");
-        settings.remove("phishOriginalId");
-        settings.remove("phishExtra");
+        settings.remove("origMailId");
+        settings.remove("extraText");
         settings.saveAsync();
       } else {
         log("Bijlage fout: " + JSON.stringify(res.error));
       }
-      done && done();
+      done?.();
     }
   );
 }
 
-// ===== Compose ready helper =====
+// ===== Wacht tot compose API klaar is =====
 function waitForComposeReady(cb) {
-  const item = Office.context.mailbox?.item;
-  if (item && typeof item.addItemAttachmentAsync === "function") {
+  const it = Office.context.mailbox?.item;
+  if (it && typeof it.addItemAttachmentAsync === "function") {
     cb();
     return;
   }
   setTimeout(() => waitForComposeReady(cb), 300);
 }
 
-// ===== Auto-run in compose =====
+// ===== Auto-run in compose pane =====
 Office.onReady(() => {
-  try {
-    if (isCompose()) {
-      log("Compose modus gedetecteerd.");
-      waitForComposeReady(() => attachOriginalMail());
-    } else {
-      log("Read modus gedetecteerd.");
-    }
-  } catch (e) {
-    console.error(e);
+  if (isCompose()) {
+    waitForComposeReady(() => attachOriginalMail());
   }
 });
 
+// ===== Ribbon command handler =====
+function attachOriginalMailCommand(event) {
+  waitForComposeReady(() => attachOriginalMail(() => event.completed()));
+}
